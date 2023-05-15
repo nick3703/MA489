@@ -1,0 +1,856 @@
+# MA489: Elements of Statistical Learning (Self Study)
+### Instructor: COL Nicholas Clark
+### CDT Huram-Abi Nzia Yotchoum (CO '23)
+
+# Linear Models and Least Squares
+
+Linear models are statistical models that use linear equations to describe relationships between variables. They are widely used in various fields, including economics, engineering, and social sciences.
+
+## Least Squares Regression
+
+Least squares regression is a method of estimating the coefficients of a linear model by minimizing the sum of squared differences between the observed and predicted values. The least squares method is widely used due to its simplicity and interpretability.
+
+The equation for a simple linear regression model is:
+
+$$y = \beta_0 + \beta_1 x + \epsilon$$
+
+where:
+
+- $y$ is the dependent variable
+- $x$ is the independent variable
+- $\beta_0$ is the intercept
+- $\beta_1$ is the slope
+- $\epsilon$ is the error term
+
+The goal of least squares regression is to find the values of $\beta_0$ and $\beta_1$ that minimize the sum of squared errors:
+
+$$RSS(\beta) = \sum_{i=1}^n (y_i - \hat{y}_i)^2$$
+$$                   =\sum_{i=1}^n (y_i - x_i^T\beta)^2$$
+$$                   = (\textbf{y} - \textbf{X}\beta)^T(\textbf{y} - \textbf{X}\beta)$$
+
+where:
+
+- $y_i$ is the observed value of the dependent variable for the $i$th observation
+- $\hat{y}_i$ is the predicted value of the dependent variable for the $i$th observation
+- $\beta$ is the vector of coefficients for the linear regression model
+- $\textbf{y}$ is the vector of observed values for the dependent variable
+- $\textbf{X}$ is the matrix of independent variables with each row representing an observation and each column representing a feature
+
+### When we differentiate the $RSS(\beta)$ with respect to $\beta$ we get the normal equation:
+
+$$RSS(\beta) = (\textbf{y} - \textbf{X}\beta)^T(\textbf{y} - \textbf{X}\beta)$$
+
+First, expand the matrix expression:
+
+$$RSS(\beta) = (\textbf{y}^T\textbf{y} - \textbf{y}^T\textbf{X}\beta - (\beta^T\textbf{X}^T\textbf{y}) + \beta^T\textbf{X}^T\textbf{X}\beta)$$
+
+$\textbf{y}^T\textbf{X}\beta$ and $\beta^T\textbf{X}^T\textbf{y}$ are both scalars, and they are the transpose of each other. Therefore, they are equal:
+
+$$RSS(\beta) = (\textbf{y}^T\textbf{y} - 2\textbf{y}^T\textbf{X}\beta + \beta^T\textbf{X}^T\textbf{X}\beta)$$
+
+differentiate RSS($\beta$) with respect to $\beta$:
+
+$$\frac{d}{d\beta} RSS(\beta) = \frac{d}{d\beta} (\textbf{y}^T\textbf{y} - 2\textbf{y}^T\textbf{X}\beta + \beta^T\textbf{X}^T\textbf{X}\beta)$$
+
+Since **y** is a constant vector, the first term's derivative is zero. Apply the matrix differentiation rules to the remaining terms:
+
+$$\frac{d}{d\beta} RSS(\beta) = -2\textbf{X}^T\textbf{y} + 2\textbf{X}^T\textbf{X}\beta$$
+
+To find normal equation, set the derivative equal to zero:
+
+$$0 = -2\textbf{X}^T\textbf{y} + 2\textbf{X}^T\textbf{X}\beta$$
+$$0 = \textbf{X}^T(\textbf{y} - \textbf{X}\beta)$$
+
+
+where:
+
+- $X$ is the matrix of independent variables
+- $y$ is the vector of observed values of the dependent variable
+- $\beta$ is the vector of coefficients to be estimated
+
+To solve for $\beta$, we can multiply both sides by $(X^TX)^{-1}$:
+
+$$\beta = (X^TX)^{-1}X^Ty$$
+
+However, if $X^TX$ is singular (not of full rank), then it does not have an inverse and the above equation cannot be solved using this method. 
+
+A singular matrix means that some of the columns in $X$ are linearly dependent on other columns. This can cause issues in calculating the inverse of $X^TX$ because it requires dividing by zero. In this case, alternative methods such as the SVD or ridge regression may be used to estimate the coefficients. 
+
+### Singularity in $X^TX$ Matrix
+
+In least squares regression, the $X^TX$ matrix is used to estimate the regression coefficients $\beta$. However, as the number of dimensions increases, it is more likely that the $X^TX$ matrix will be singular (not of full rank). This can cause issues in calculating the inverse of $X^TX$, which is required to estimate $\beta$. 
+
+When the $X^TX$ matrix is singular, alternative methods such as ridge regression or the singular value decomposition (SVD) may be used to estimate the regression coefficients. Ridge regression adds a penalty term to the sum of squared errors to shrink the coefficients towards zero, which can help to overcome the issue of singularity in $X^TX$. The SVD is a matrix factorization technique that can be used to estimate the coefficients without inverting $X^TX$.
+
+In summary, the curse of dimensionality can impact the accuracy and computational efficiency of various machine learning algorithms, including least squares regression and nearest neighbors. Increased dimensions can lead to overfitting, a need for exponentially more data, and issues with the singularity of the $X^TX$ matrix. Alternative methods such as ridge regression and the SVD can be used to overcome these issues.
+
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import accuracy_score
+
+# Generate random data for two classes
+num_samples = 200
+x_blue = np.random.randn(num_samples, 2) + np.array([0, -1])
+x_orange = np.random.randn(num_samples, 2) + np.array([1, 1])
+X = np.vstack((x_blue, x_orange))
+
+y_blue = np.zeros(num_samples)
+y_orange = np.ones(num_samples)
+y = np.hstack((y_blue, y_orange))
+
+# Fit a linear regression model
+model = LinearRegression().fit(X, y)
+
+# Decision boundary (xT * β = 0.5)
+decision_boundary = lambda x: (0.5 - model.intercept_ - model.coef_[0] * x) / model.coef_[1]
+
+# Classify using decision boundary
+y_pred = model.predict(X) > 0.5
+
+# Calculate accuracy
+accuracy = accuracy_score(y, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
+
+# Plot the data and decision boundary
+plt.scatter(x_blue[:, 0], x_blue[:, 1], color='blue', label='BLUE (0)')
+plt.scatter(x_orange[:, 0], x_orange[:, 1], color='orange', label='ORANGE (1)')
+x_range = np.linspace(X[:, 0].min(), X[:, 0].max(), 100)
+plt.plot(x_range, decision_boundary(x_range), color='green', label='Decision Boundary (xT * β = 0.5)')
+plt.fill_between(x_range, decision_boundary(x_range), X[:, 1].min(), color='blue', alpha=0.1)
+plt.fill_between(x_range, decision_boundary(x_range), X[:, 1].max(), color='orange', alpha=0.1)
+plt.xlabel('X1')
+plt.ylabel('X2')
+plt.legend()
+plt.show()
+```
+
+
+## Statistical Decision Theory
+
+Statistical decision theory is a framework for decision-making that considers probabilities, costs, and benefits of various actions. In the context of linear models, this theory helps in determining the best model or method to use, considering various factors like model complexity, error rates, and the trade-off between bias and variance.
+
+# Nearest Neighbors
+
+Nearest Neighbors is a non-parametric machine learning algorithm used for classification and regression tasks. It works by finding the most similar data points in the training dataset to a given input and making predictions based on their values.
+
+## Algorithm
+
+The algorithm can be summarized in the following steps:
+
+1. Calculate the distance between the input and all data points in the training set using a distance metric.
+2. Select the k nearest neighbors based on their distance to the input.
+3. For classification tasks, assign the input to the class that is most frequent among the k nearest neighbors. For regression tasks, predict the output as the mean or median of the output values of the k nearest neighbors.
+
+The choice of distance metric can significantly impact the performance of the algorithm. Some common distance metrics used in Nearest Neighbors include:
+
+### Euclidean Distance
+
+The Euclidean distance between two points $p$ and $q$ in $n$-dimensional space is given by:
+
+$$dist(p, q) = \sqrt{\sum_{i=1}^n (p_i - q_i)^2}$$
+
+where $p_i$ and $q_i$ are the $i$th components of $p$ and $q$, respectively.
+
+### Manhattan Distance
+
+The Manhattan distance between two points $p$ and $q$ in $n$-dimensional space is given by:
+
+$$dist(p, q) = \sum_{i=1}^n |p_i - q_i|$$
+
+### Minkowski Distance
+
+The Minkowski distance between two points $p$ and $q$ in $n$-dimensional space is given by:
+
+$$dist(p, q) = \left(\sum_{i=1}^n |p_i - q_i|^p\right)^{\frac{1}{p}}$$
+
+where $p$ is a parameter that determines the order of the distance metric. When $p=1$, the Minkowski distance is equivalent to the Manhattan distance. When $p=2$, it is equivalent to the Euclidean distance.
+
+## Hyperparameters
+
+The Nearest Neighbors algorithm has a hyperparameter k, which determines the number of nearest neighbors to consider when making predictions. The choice of k can significantly impact the performance of the algorithm. A small value of k may result in overfitting, while a large value of k may result in underfitting.
+
+## Pros and Cons
+
+### Pros
+
+- Simple and easy to implement.
+- Non-parametric, meaning it does not make assumptions about the underlying distribution of the data.
+- Can be used for both classification and regression tasks.
+
+### Cons
+
+- May be computationally expensive for large datasets.
+- Performance can be sensitive to the choice of distance metric and hyperparameters.
+- May not perform well when the feature space is high-dimensional or when there is a lot of noise in the data.
+
+Here's the formula for predicting the output using k-nearest neighbors:
+
+For regression tasks, the predicted output $\hat{y}$ for a given input $x$ is calculated as the mean or median of the output values of the k nearest neighbors in the training set:
+
+$$\hat{y}(x) = \frac{1}{k} \sum_{x_i \in N_k(x)} y_i$$
+
+where:
+
+- $N_k(x)$ is the set of k nearest neighbors to $x$ in the training set, as determined by a distance metric.
+- $y_i$ is the output value of the $i$th nearest neighbor in $N_k(x)$.
+
+This formula takes the average output of the k nearest neighbors as the predicted output for the input. The value of k can be chosen by cross-validation or other methods to optimize performance.
+
+In summary, Nearest Neighbors is a simple and versatile algorithm that can be used for both classification and regression tasks. However, it is important to carefully choose the distance metric and hyperparameters to achieve good performance.
+
+```python
+
+from sklearn.neighbors import KNeighborsClassifier
+from matplotlib.colors import ListedColormap
+
+def neighbors(k=1):
+    model = KNeighborsClassifier(n_neighbors=k).fit(X, y)
+
+    # Calculate accuracy
+    y_pred = model.predict(X)
+    accuracy = accuracy_score(y, y_pred)
+    print(f"Accuracy: {accuracy:.2f}")
+
+    # Plot the data and decision boundary
+    plt.scatter(x_blue[:, 0], x_blue[:, 1], color='blue', label='BLUE (0)')
+    plt.scatter(x_orange[:, 0], x_orange[:, 1], color='orange', label='ORANGE (1)')
+
+    # Create a mesh grid for the decision boundary
+    h = .02
+    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, h), np.arange(x2_min, x2_max, h))
+    Z = model.predict(np.c_[xx1.ravel(), xx2.ravel()])
+    Z = Z.reshape(xx1.shape)
+
+    # Plot the decision boundary
+    cmap_light = ListedColormap(['#AAAAFF', '#FFAAAA'])
+    plt.contourf(xx1, xx2, Z, alpha=0.3, cmap=cmap_light)
+
+    plt.xlabel('X1')
+    plt.ylabel('X2')
+    plt.legend()
+    plt.show()
+
+neighbors()
+neighbors(15)
+```
+
+# Least Squares Regression vs Nearest Neighbors
+
+Least Squares Regression and Nearest Neighbors are two popular machine learning algorithms used for regression problems. Here are some of the key differences between these methods:
+
+## Model Type and Assumptions
+
+Least Squares Regression is a parametric method that assumes a linear relationship between the independent and dependent variables. It estimates the coefficients of the linear equation by minimizing the sum of squared differences between observed and predicted values. In contrast, Nearest Neighbors is a non-parametric algorithm that makes no assumptions about the underlying data distribution. It stores the entire training dataset and makes predictions based on the similarity between data points.
+
+## Learning Approach
+
+Least Squares Regression is an eager learning approach, which means that it builds a model based on the entire training dataset before making predictions on new data. In contrast, Nearest Neighbors is a lazy learning approach, which means that it does not build a model but rather stores the entire training dataset and makes predictions based on the similarity between the new data point and the stored data points.
+
+## Flexibility and Complexity
+
+Nearest Neighbors is more flexible and can model complex relationships, unlike Least Squares Regression which assumes a linear relationship. However, Nearest Neighbors may suffer from increased computational complexity due to the storage and distance calculation requirements.
+
+## Interpretability
+
+Least Squares Regression models are generally easier to interpret because they involve a simple linear equation. The coefficients of the equation can be used to understand the relationship between the independent and dependent variables. In contrast, Nearest Neighbors models lack an explicit structure, making them less interpretable.
+
+## Robustness and Sensitivity
+
+Nearest Neighbors is more robust to outliers and noisy data compared to Least Squares Regression, which can be heavily influenced by extreme values. However, Nearest Neighbors can be sensitive to the choice of distance metric and the value of 'k', which determines the number of nearest neighbors to consider.
+
+## Equations
+
+The equation for Least Squares Regression is:
+
+$$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + ... + \beta_p x_p + \epsilon$$
+
+where:
+
+- $y$ is the dependent variable
+- $x_1, x_2, ..., x_p$ are the independent variables
+- $\beta_0, \beta_1, \beta_2, ..., \beta_p$ are the coefficients to be estimated
+- $\epsilon$ is the error term
+
+The goal of Least Squares Regression is to find the values of $\beta_0, \beta_1, \beta_2, ..., \beta_p$ that minimize the sum of squared errors:
+
+$$\sum_{i=1}^n (y_i - \hat{y}_i)^2$$
+
+where:
+
+- $y_i$ is the observed value of the dependent variable for the $i$th observation
+- $\hat{y}_i$ is the predicted value of the dependent variable for the $i$th observation
+
+The equation for Nearest Neighbors is:
+
+$$\hat{y} = \frac{1}{k} \sum_{i=1}^k y_i$$
+
+where:
+
+- $\hat{y}$ is the predicted value of the dependent variable for the new data point
+- $y_i$ are the observed values of the dependent variable for the $k$ nearest neighbors
+- $k$ is a user-defined parameter that specifies the number of nearest neighbors to consider.
+
+# Curse of Dimensionality
+
+The Curse of Dimensionality refers to the phenomenon where the performance of machine learning algorithms deteriorates rapidly as the number of independent variables (features) increases. This is because the number of possible combinations of feature values grows exponentially with the number of dimensions, making it difficult to find meaningful patterns in the data. Shrinkage methods like Ridge and Lasso Regression can be useful in dealing with high-dimensional datasets by reducing the number of irrelevant features and improving model generalization.
+
+## Distance from the Origin to the Closest Data Point
+
+The median distance from the origin to the closest data point is given by:
+
+$$d(p,n) = (1 - (1/2)^{1/n})^{1/p}$$
+
+where:
+
+- $p$ is the number of dimensions or features.
+- $n$ is the number of data points or training examples.
+
+This equation tells us that as the number of dimensions increases, the distance between any two points in the feature space becomes less meaningful. This can make it difficult to identify the nearest neighbors or estimate the model parameters accurately.
+
+The distance from the origin to the closest data point can be derived from the Gaussian distribution in high-dimensional space. 
+
+### Exercise 2.3 - Derive Median distance formula
+
+$$\frac{1}{2} = P(X_{(1)} < d)$$
+
+$$\frac{1}{2} = 1 -  P(X_{(1)} > d)$$
+
+$$\frac{1}{2} = 1 -  (P(X_{(1)} > d))^n$$
+
+Taking the previous equation and solving for $(P(X_{(1)} > d))^n$:
+
+$$(P(X_{(1)} > d))^n = 1 - \frac{1}{2}$$
+
+$$(P(X_{(1)} > d))^n = \frac{1}{2}$$
+
+Now, take the nth root of both sides to isolate $P(X_{(1)} > d)$:
+
+$$P(X_{(1)} > d) = (1/2)^{1/n}$$
+
+Since $P(X_{(1)} > d) = 1 - P(X_{(1)} < d)$, we have:
+
+$$1 - P(X_{(1)} < d) = (1/2)^{1/n}$$
+
+Now, solving for $P(X_{(1)} < d)$:
+
+$$P(X_{(1)} < d) = 1 - (1/2)^{1/n}$$
+
+We know that for a circle with radius 1, the area enclosed by the circle is $A = \pi r^2 = \pi$. The probability of a point being within this area can be expressed as:
+
+$$P(X_{(1)} < d) = \frac{A}{\pi}$$
+
+From the equation derived earlier, we have:
+
+$$1 - (1/2)^{1/n} = \frac{A}{\pi}$$
+
+Now we need to derive A, the area enclosed by a circle with radius d, in terms of p (dimensions) and n (points):
+
+$$A = \pi d^2$$
+
+Substitute this back into the probability equation:
+
+$$1 - (1/2)^{1/n} = \frac{\pi d^2}{\pi}$$
+
+Simplify and solve for d:
+
+$$d^2 = 1 - (1/2)^{1/n}$$
+
+$$d = \sqrt{1 - (1/2)^{1/n}} = (1 - (1/2)^{1/n})^{1/2}$$
+
+Finally, for p-dimensional space, we have the median distance formula:
+
+$$d(p,n) = (1 - (1/2)^{1/n})^{1/p}$$
+
+## Impact on Least Squares Regression
+
+In least squares regression, the regression coefficients $\beta$ are estimated by minimizing the sum of squared errors:
+
+$$\sum_{i=1}^n (y_i - \beta_0 - \sum_{j=1}^p \beta_j x_{ij})^2$$
+
+Increased number of dimensions or features can lead to overfitting and an increased likelihood of noise in the model. This is because the model has more parameters to estimate and may fit the noise in the data rather than the underlying signal. Increased dimensions can also lead to a need for exponentially more data to train the model.
+
+## Impact on Nearest Neighbors
+
+The nearest neighbors algorithm is a popular method for classification and regression tasks. However, increased dimensionality can make it difficult to identify the k closest neighbors due to most points being equidistant from each other. Increased dimensions can also lead to the need for exponentially more training examples to cover the space, making the algorithm computationally expensive.
+
+
+# Shrinkage Methods
+
+Shrinkage methods are regression techniques that use regularization to improve model performance and prevent overfitting. Two commonly used shrinkage methods are Ridge Regression and Lasso Regression.
+
+## Ridge Regression
+
+Ridge Regression is a linear regression technique that incorporates L2 regularization, which adds a penalty term proportional to the square of the coefficients. The Ridge Regression objective function can be written as:
+
+$$J(\beta) = \sum_{i=1}^n (y_i - \beta_0 - \sum_{j=1}^p x_{ij} \beta_j)^2 + \lambda \sum_{j=1}^p \beta_j^2$$
+
+where:
+
+- $y_i$ is the observed value of the dependent variable for the $i$th observation
+- $x_{ij}$ is the value of the $j$th independent variable for the $i$th observation
+- $\beta_0$ is the intercept term
+- $\beta_j$ is the coefficient for the $j$th independent variable
+- $\lambda$ is the regularization parameter that controls the amount of shrinkage applied to the coefficients
+
+The Ridge Regression penalty term shrinks the coefficients towards zero, but does not result in exact zeros. This approach helps prevent overfitting and reduces multicollinearity in the model.
+
+## Lasso Regression
+
+Lasso Regression is another linear regression technique that uses L1 regularization, adding a penalty term proportional to the absolute value of the coefficients. The Lasso Regression objective function can be written as:
+
+$$J(\beta) = \sum_{i=1}^n (y_i - \beta_0 - \sum_{j=1}^p x_{ij} \beta_j)^2 + \lambda \sum_{j=1}^p |\beta_j|$$
+
+where the variables are defined as in Ridge Regression.
+
+The Lasso Regression penalty term encourages some coefficients to be exactly zero, effectively performing feature selection and resulting in sparse models. This can be useful when dealing with high-dimensional datasets, where many of the independent variables may not be relevant to the dependent variable.
+
+## Comparison
+
+Both Ridge and Lasso Regression aim to address overfitting and improve model generalization. Ridge Regression tends to shrink coefficients uniformly, while Lasso Regression can shrink some coefficients to zero, simplifying the model. The choice between Ridge and Lasso Regression depends on the specific problem and the nature of the data.
+
+## Bayesian Perspective
+
+Ridge and Lasso Regression can be viewed through a Bayesian lens. Ridge Regression corresponds to placing a Gaussian prior on the coefficients, leading to a maximum a posteriori (MAP) estimate that is equivalent to minimizing the L2 regularization term. In contrast, Lasso Regression corresponds to placing a Laplace prior on the coefficients, resulting in a MAP estimate that minimizes the L1 regularization term. This Bayesian interpretation helps explain the differences in behavior between the two techniques.
+
+In Bayesian statistics, the goal is to estimate the posterior distribution of the model parameters given the observed data. The posterior distribution is proportional to the product of the likelihood function and the prior distribution:
+
+$$p(\beta | y, X) \propto p(y | X, \beta) p(\beta)$$
+
+where:
+
+- $y$ is the vector of observed values of the dependent variable
+- $X$ is the design matrix of independent variables
+- $\beta$ is the vector of coefficients to be estimated
+
+The likelihood function represents the probability of the observed data given the model parameters. The prior distribution represents the prior beliefs about the model parameters before observing the data.
+
+### Ridge Regression
+
+In Ridge Regression, the prior distribution is assumed to be a multivariate normal distribution with mean 0 and variance $\tau^2$:
+
+$$p(\beta) = \frac{1}{(2\pi \tau^2)^{p/2}} \exp \left(-\frac{1}{2\tau^2} \sum_{j=1}^p \beta_j^2 \right)$$
+
+where $p$ is the number of independent variables and $\tau^2$ is a hyperparameter that controls the strength of the prior.
+
+The Ridge Regression objective function can be reformulated as maximizing the posterior distribution with a Gaussian prior:
+
+$$\hat{\beta}^{ridge} = \arg\max_\beta p(\beta | y, X) \propto p(y | X, \beta) p(\beta)$$
+
+which is equivalent to minimizing the negative log posterior:
+
+$$J(\beta) = \sum_{i=1}^n (y_i - \beta_0 - \sum_{j=1}^p x_{ij} \beta_j)^2 + \frac{\lambda}{2} \sum_{j=1}^p \beta_j^2$$
+
+where $\lambda = \frac{1}{\tau^2}$ is the regularization parameter.
+
+### Lasso Regression
+
+In Lasso Regression, the prior distribution is assumed to be a Laplace distribution with mean 0 and scale parameter $\tau$:
+
+$$p(\beta) = \prod_{j=1}^p \frac{\tau}{2} \exp \left(-\tau |\beta_j| \right)$$
+
+The Lasso Regression objective function can be reformulated as maximizing the posterior distribution with a Laplace prior:
+
+$$\hat{\beta}^{lasso} = \arg\max_\beta p(\beta | y, X) \propto p(y | X, \beta) p(\beta)$$
+
+which is equivalent to minimizing the negative log posterior:
+
+$$J(\beta) = \sum_{i=1}^n (y_i - \beta_0 - \sum_{j=1}^p x_{ij} \beta_j)^2 + \lambda \sum_{j=1}^p |\beta_j|$$
+
+where $\lambda = \frac{1}{\tau}$ is the regularization parameter.
+
+### Comparison
+
+From a Bayesian perspective, Ridge Regression corresponds to placing a Gaussian prior on the coefficients, while Lasso Regression corresponds to placing a Laplace prior on the coefficients. The Gaussian prior leads to a MAP estimate that is equivalent to minimizing the L2 regularization term, while the Laplace prior leads to a MAP estimate that minimizes the L1 regularization term. 
+
+In both cases, the regularization parameter controls the tradeoff between the likelihood of the observed data and the penalty term. As the regularization parameter increases, the penalty term becomes more important and the coefficients are shrunk towards zero, reducing overfitting and improving model generalization. However, Ridge Regression tends to shrink all coefficients towards zero, while Lasso Regression can result in some coefficients being exactly zero, effectively performing feature selection.
+Support Vector Classifier (SVC) and Support Vector Machine (SVM) are supervised learning algorithms used for classification and regression tasks. The primary idea behind SVM is to find the optimal separating hyperplane that maximizes the margin between the classes. The margin is defined as the distance between the hyperplane and the closest samples from each class, which are called support vectors, as they "support" the hyperplane.
+
+Support Vector Classifier:
+In the context of binary classification, the Support Vector Classifier aims to find a linear decision boundary (a hyperplane) that separates the two classes with the maximum margin. The decision function for the SVC is given by:
+
+$$ f(x) = w^Tx + b $$
+
+Where $w$ is the weight vector, $x$ is the input feature vector, and $b$ is the bias term.
+
+The objective of the SVC is to minimize the following optimization problem:
+
+$$ \min_{w, b} ||w|| $$
+
+Subject to the constraints:
+
+$$ y_i(x_i^Tw + b) \geq 1, \quad i=1, \dots, N $$
+
+Here, $N$ is the number of training samples, and $y_i$ is the class label, which is either -1 or 1.
+
+Support Vector Machine:
+The Support Vector Machine (SVM) is an extension of the Support Vector Classifier that allows for non-linear decision boundaries using kernel functions. The idea is to project the input data into a higher-dimensional space where the classes become linearly separable.
+
+The decision function for the SVM is given by:
+
+$$ f(x) = \sum_{i=1}^{N} \alpha_i y_i K(x_i, x) + b $$
+
+Where $K(x_i, x)$ is the kernel function, and $\alpha_i$ are the dual variables obtained by solving the dual optimization problem:
+
+$$ \max_{\alpha} \sum_{i=1}^{N} \alpha_i - \frac{1}{2} \sum_{i=1}^{N} \sum_{j=1}^{N} \alpha_i \alpha_j y_i y_j K(x_i, x_j) $$
+
+Subject to the constraints:
+
+$$ 0 \leq \alpha_i \leq C, \quad i=1, \dots, N $$
+
+$$ \sum_{i=1}^{N} \alpha_i y_i = 0 $$
+
+Here, $C$ is a regularization parameter that controls the trade-off between maximizing the margin and minimizing the classification error. A larger value of $C$ puts more emphasis on minimizing the error, while a smaller value of $C$ leads to a larger margin.
+
+The choice of the kernel function is crucial for the performance of the SVM. Commonly used kernel functions include:
+
+1. Linear kernel: $K(x_i, x_j) = x_i^T x_j$
+2. Polynomial kernel: $K(x_i, x_j) = (x_i^T x_j + c)^d$
+3. Gaussian (RBF) kernel: $K(x_i, x_j) = \exp(-\gamma ||x_i - x_j||^2)$
+4. Sigmoid kernel: $K(x_i, x_j) = \tanh(\eta x_i^T x_j + c)$
+
+
+# SVM Class
+
+Linear Support Vector Machines Class
+
+Credit: This Code is from this article https://towardsdatascience.com/machine-learning-algorithms-from-start-to-finish-in-python-svm-d9ff9b48fd1
+
+https://github.com/Vagif12/ML-Algorithms-From-Scratch - Source Code for SVM
+
+```python
+from sklearn.datasets import make_blobs
+
+class SVM:
+    def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=1000, kernel='linear'):
+        self.lr = learning_rate
+        self.lambda_param = lambda_param
+        self.n_iters = n_iters
+        self.kernel = kernel
+        self.weights = None
+        self.bias = None
+
+    def _linear_kernel(self, x1, x2):
+        return np.dot(x1, x2)
+
+    def _polynomial_kernel(self, x1, x2, p=3):
+        return (1 + np.dot(x1, x2)) ** p
+
+    def _gaussian_kernel(self, x1, x2, sigma=5.0):
+        return np.exp(-np.linalg.norm(x1 - x2) ** 2 / (2 * (sigma ** 2)))
+
+    def _kernel(self, x1, x2):
+        if self.kernel == 'linear':
+            return self._linear_kernel(x1, x2)
+        elif self.kernel == 'polynomial':
+            return self._polynomial_kernel(x1, x2)
+        elif self.kernel == 'gaussian':
+            return self._gaussian_kernel(x1, x2)
+        else:
+            raise ValueError("Invalid kernel specified")
+
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
+        y_ = np.where(y <= 0, -1, 1)
+
+        self.weights = np.zeros(n_features)
+        self.bias = 0
+
+        for _ in range(self.n_iters):
+            for idx, x_i in enumerate(X):
+                condition = y_[idx] * (self._kernel(x_i, self.weights) - self.bias) >= 1
+                if condition:
+                    self.weights -= self.lr * (2 * self.lambda_param * self.weights)
+                else:
+                    self.weights -= self.lr * (2 * self.lambda_param * self.weights - np.dot(x_i, y_[idx]))
+                    self.bias -= self.lr * y_[idx]
+
+    def predict(self, X):
+        output = np.dot(X, self.weights) - self.bias
+        return np.sign(output)
+
+    def plot(self, X, y):
+        def plot_hyperplane(X, w, b, margin=0):
+            slope = -w[0] / w[1]
+            intercept = -b / w[1]
+            margin = 1 / np.sqrt(np.sum(w ** 2)) * margin
+            x_hyperplane = np.linspace(min(X[:, 0]) - 1, max(X[:, 0]) + 1, 100)
+            y_hyperplane = slope * x_hyperplane + intercept + margin
+            return x_hyperplane, y_hyperplane
+
+        fig, ax = plt.subplots()
+        scatter = ax.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.coolwarm)
+        legend1 = ax.legend(*scatter.legend_elements(), loc="lower right", title="Classes")
+        ax.add_artist(legend1)
+
+        x_hyperplane, y_hyperplane = plot_hyperplane(X, self.weights, self.bias)
+        ax.plot(x_hyperplane, y_hyperplane, label='Decision Boundary')
+        x_hyperplane, y_hyperplane = plot_hyperplane(X, self.weights, self.bias, margin=1)
+        ax.plot(x_hyperplane, y_hyperplane, linestyle='dashed', label='Margin (+)')
+        x_hyperplane, y_hyperplane = plot_hyperplane(X, self.weights, self.bias, margin=-1)
+        ax.plot(x_hyperplane, y_hyperplane, linestyle='dashed', label='Margin (-)')
+
+        plt.legend()
+        plt.show()
+
+# Create sample data and train the model
+X, y = make_blobs(n_samples=50, centers=2,  cluster_std=1.05)
+y = np.where(y == 0, -1, 1)
+svm = SVM(kernel='linear')
+svm.fit(X, y)
+svm.plot(X, y)
+```
+
+
+
+# Linear Discirminant Analysis
+
+LDA is based on the Bayes' theorem, which models the conditional probability of a class given the data:
+
+$$ P(C_k|x) = \frac{P(x|C_k)P(C_k)}{P(x)} $$
+
+Where $C_k$ represents the class, $x$ is the data point, $P(x|C_k)$ is the class-conditional density (likelihood), $P(C_k)$ is the prior probability of the class, and $P(x)$ is the overall probability density of the data.
+
+In LDA, the class-conditional densities are modeled as multivariate Gaussian distributions with class-specific means $\mu_k$ and a shared covariance matrix $\Sigma_k$:
+
+$$ f_k(x) = \frac{1}{(2\pi)^{d/2}|\Sigma_k|^{1/2}}\exp\left(-\frac{1}{2}(x-\mu_k)^T\Sigma^{-1}(x-\mu_k)\right) $$
+
+Here, $d$ is the dimensionality of the data.
+
+The LDA decision rule is derived by comparing the ratios of the posterior probabilities for each class. In practice, we can work with the log of the ratios to simplify calculations:
+
+$$ \log\frac{P(C_k|x)}{P(C_l|x)}  = \log\frac{f_k(x)}{f_l(x)} + \log\frac{\pi_k}{\pi_l} $$
+
+Substituting the Gaussian densities and simplifying, we get a linear decision boundary:
+
+$$ x^T\Sigma^{-1}(\mu_k - \mu_l) -\frac{1}{2}(\mu_k+\mu_l)^T\Sigma^{-1}(\mu_k -\mu_l)  +  \log\frac{\pi_k}{\pi_l} $$
+
+
+To estimate the parameters $\mu_k$ and $\Sigma$, we use the sample means and covariance:
+
+$$ \hat{\mu_k} = \sum_{x\in C_k} \frac{x_i}{N_k} $$
+
+$$ \hat{\Sigma} = \sum_{k=1}^{K}\sum_{x\in C_k}\frac{(x_i-\hat{\mu_k})(x_i-\hat{\mu_k})^T}{N-K} $$
+
+Where $n_k$ is the number of samples in class $k$, $n$ is the total number of samples, and $n_c$ is the number of classes.
+
+```python
+from sklearn.datasets import make_blobs
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.preprocessing import PolynomialFeatures
+
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
+from sklearn.pipeline import make_pipeline
+
+# Generate sample data with three classes
+X, y =  make_blobs(n_samples=100, centers=3, cluster_std=3)
+
+# Create the LDA model
+lda = LDA()
+
+# Train the LDA model on the original data
+lda.fit(X, y)
+
+# Create the QDA model
+qda = QDA()
+
+# Train the QDA model on the original data
+qda.fit(X, y)
+
+# Create the quadratic LDA model using PolynomialFeatures
+poly = PolynomialFeatures(degree=5, include_bias=False)
+quad_lda = make_pipeline(poly, LDA())
+
+# Train the quadratic LDA model on the original data
+quad_lda.fit(X, y)
+
+# Plot the original data and decision boundaries
+x1_range = np.linspace(X[:, 0].min() - 0.5, X[:, 0].max() + 0.5, 100)
+x2_range = np.linspace(X[:, 1].min() - 0.5, X[:, 1].max() + 0.5, 100)
+x1_grid, x2_grid = np.meshgrid(x1_range, x2_range)
+X_grid = np.c_[x1_grid.ravel(), x2_grid.ravel()]
+
+y_lda_pred = lda.predict(X_grid).reshape(x1_grid.shape)
+y_qda_pred = qda.predict(X_grid).reshape(x1_grid.shape)
+y_quad_lda_pred = quad_lda.predict(X_grid).reshape(x1_grid.shape)
+
+
+# Plot the data points and the linear decision boundaries (Left)
+plt.subplot(1, 3, 1)
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis', edgecolors='k')
+plt.contour(x1_grid, x2_grid, y_lda_pred, levels=[0.5, 1.5], colors='k', linewidths=1)
+plt.title('LDA')
+
+# Plot the data points and the quadratic decision boundaries (Right)
+plt.subplot(1, 3, 2)
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis', edgecolors='k')
+plt.contour(x1_grid, x2_grid, y_qda_pred, levels=[0.5, 1.5], colors='k', linewidths=1)
+plt.title('QDA')
+
+plt.subplot(1, 3, 3)
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis', edgecolors='k')
+plt.contour(x1_grid, x2_grid, y_quad_lda_pred, levels=[0.5, 1.5], colors='k', linewidths=1)
+plt.title('5-D LDA')
+
+plt.show()
+```
+### Exercise 4.2 (a)
+Suppose we have features $x\in \mathbb{R}^p$, a two-class response, with class sizes $N_1$, $N_2$, and the target coded as $-N/N_1$, $N/N_2$
+Show that the LDA rule classifies to class 2 if
+	 
+$$x^T\hat\Sigma^{-1}(\hat\mu_2 - \hat\mu_1) > \frac{1}{2}(\hat\mu_2 + \hat\mu_1)^T\hat\Sigma^{-1}(\hat\mu_2 - \hat\mu_1) - \log(N_2/N_1)$$
+
+and class 1 otherwise.
+
+Let's denote class 1 as $C_1$ and class 2 as $C_2$. We also have the priors $P(C_1) = \frac{N_1}{N}$ and $P(C_2) = \frac{N_2}{N}$.
+
+The LDA decision rule, which classifies a point $x$ to class 2 if:
+
+$$ \log\frac{P(C_2|x)}{P(C_1|x)} > 0 $$
+
+Using Bayes' theorem, we can write:
+
+$$ \log\frac{P(x|C_2)P(C_2)}{P(x|C_1)P(C_1)} > 0 $$
+
+Substituting the Gaussian densities and the prior probabilities:
+
+$$ \log\frac{\frac{1}{(2\pi)^{p/2}|\hat\Sigma|^{1/2}}\exp\left(-\frac{1}{2}(x-\hat\mu_2)^T\hat\Sigma^{-1}(x-\hat\mu_2)\right)\cdot\frac{N_2}{N}}{\frac{1}{(2\pi)^{p/2}|\hat\Sigma|^{1/2}}\exp\left(-\frac{1}{2}(x-\hat\mu_1)^T\hat\Sigma^{-1}(x-\hat\mu_1)\right)\cdot\frac{N_1}{N}} > 0 $$
+
+Simplifying, we get:
+
+$$ \log\frac{N_2}{N_1} - \frac{1}{2}(x-\hat\mu_2)^T\hat\Sigma^{-1}(x-\hat\mu_2) + \frac{1}{2}(x-\hat\mu_1)^T\hat\Sigma^{-1}(x-\hat\mu_1) > 0 $$
+
+Expanding the quadratic terms, we obtain:
+
+$$ \log\frac{N_2}{N_1} - \frac{1}{2}(x^T\hat\Sigma^{-1}x - 2x^T\hat\Sigma^{-1}\hat\mu_2 + \hat\mu_2^T\hat\Sigma^{-1}\hat\mu_2) + \frac{1}{2}(x^T\hat\Sigma^{-1}x - 2x^T\hat\Sigma^{-1}\hat\mu_1 + \hat\mu_1^T\hat\Sigma^{-1}\hat\mu_1) > 0 $$
+
+The $x^T\hat\Sigma^{-1}x$ terms cancel out, and we are left with:
+
+$$ x^T\hat\Sigma^{-1}(\hat\mu_2 - \hat\mu_1) > \frac{1}{2}(\mu_2+\mu_1)^T\Sigma^{-1}(\mu_2 -\mu_1) - \log(N_2/N_1) $$
+
+Therefore, LDA classifies to class 2 if the inequality holds and to class 1 otherwise.
+
+# Quadratic Discriminant Ananlysis
+
+Quadratic Discriminant Analysis (QDA) is another classification technique that, like LDA, is based on the Bayes' theorem and models the class-conditional densities using Gaussian distributions. However, unlike LDA, QDA does not assume that the classes share the same covariance matrix. Instead, each class $k$ has its own covariance matrix $\Sigma_k$.
+
+The QDA decision rule is derived by comparing the ratios of the posterior probabilities for each class, similar to LDA. The decision boundary is no longer linear as it was in LDA.
+
+Estimation of the parameters $\mu_k$ and $\Sigma_k$ is done using the sample means and covariance matrices:
+
+$$ \hat{\mu_k} = \frac{1}{n_k}\sum_{x\in C_k}x $$
+
+$$ \hat{\Sigma_k} = \frac{1}{n_k-1}\sum_{x\in C_k}(x-\mu_k)(x-\mu_k)^T $$ 
+
+Where $n_k$ is the number of samples in class $k$.
+
+QDA can be more flexible compared to LDA, as it allows for different covariance structures in each class. However, this flexibility comes at the cost of requiring more parameters to be estimated, which can lead to overfitting when the number of samples is small. In such cases, LDA might be a more suitable choice.
+
+
+Logistic Regression is a supervised classification technique used to model the probability of a categorical target variable (class) given the input features. For a binary classification problem, logistic regression models the probability of a data point $x$ belonging to class $k=1$ using the logistic function:
+
+$$ P(C_1|x) = \frac{1}{1 + \exp(-(\beta_0 + \beta_1 x_1 + \dots + \beta_p x_p))} $$
+
+Here, $x = (x_1, x_2, \dots, x_p)$ are the input features, and $\beta = (\beta_0, \beta_1, \dots, \beta_p)$ are the model parameters to be estimated from the data.
+
+For a multi-class problem with $K$ classes, logistic regression can be extended using the softmax function to model the posterior probabilities:
+
+$$ P(C_k|x) = \frac{\exp(\beta_{k0} + \beta_{k1} x_1 + \dots + \beta_{kp} x_p)}{\sum_{l=1}^K \exp(\beta_{l0} + \beta_{l1} x_1 + \dots + \beta_{lp} x_p)} $$
+
+In the case of logistic regression, we aim to maximize the log-likelihood of the observed data, which is equivalent to minimizing the negative log-likelihood:
+
+$$ L(\beta) = -\sum_{i=1}^N \log P(C_{y_i}|x_i) $$
+
+Where $N$ is the number of samples, $x_i$ are the input features of the $i$-th data point, and $y_i$ is the observed class label for the $i$-th data point.
+
+To estimate the logistic regression model parameters, we can use optimization techniques like gradient descent, Newton-Raphson, or quasi-Newton methods (e.g., L-BFGS) to minimize the negative log-likelihood. Once the parameters are estimated, we can use the posterior probabilities to make class predictions based on a suitable decision threshold (e.g., 0.5 for binary classification).
+
+Logistic Regression is particularly useful when the relationship between the input features and the class probabilities can be modeled using a linear function. 
+
+# Separating Hyperplanes:
+In the context of binary classification, a separating hyperplane is a decision boundary that divides the feature space into two parts, each corresponding to one of the classes. If a separating hyperplane exists, the two classes are said to be linearly separable. The equation of a hyperplane can be given as:
+
+$$ w^Tx + b = 0 $$
+
+Where $w$ is the weight vector, $x$ is the input feature vector, and $b$ is the bias term.
+
+## Perceptron Learning:
+The Perceptron is a binary classification algorithm that aims to find a separating hyperplane for linearly separable data. It was introduced by Frank Rosenblatt in 1957 and is considered one of the simplest neural network models. The Perceptron algorithm updates the weights iteratively based on the misclassified samples in the training data.
+
+Given a dataset of $N$ samples with input features $x_i$ and binary class labels $y_i \in \{-1, 1\}$, the Perceptron learning algorithm proceeds as follows:
+
+1. Initialize the weight vector $w$ and the bias term $b$ with zeros or small random values.
+2. For each training example $(x_i, y_i)$, predict the class label $\hat{y}_i$ as follows:
+
+$$ \hat{y}_i = \text{sign}(w^Tx_i + b) $$
+
+3. Update the weights and bias for each misclassified example:
+
+$$ w \leftarrow w + \alpha(y_i - \hat{y}_i)x_i $$
+
+$$ b \leftarrow b + \alpha(y_i - \hat{y}_i) $$
+
+Here, $\alpha$ is the learning rate, which controls the step size of the updates.
+
+4. Repeat steps 2 and 3 for a fixed number of iterations or until convergence (i.e., no more misclassified examples).
+
+Once the Perceptron has been trained, it can be used to predict the class labels of new data points by evaluating the sign of $w^Tx + b$. If the data is linearly separable, the Perceptron algorithm is guaranteed to converge to a separating hyperplane. However, if the data is not linearly separable, the algorithm will not converge.
+
+```python
+from sklearn.linear_model import Perceptron, LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import train_test_split
+
+# Create linearly separable dataset
+X, y = make_blobs(n_samples=100, centers=2, cluster_std=1)
+
+# Change labels from 0/1 to -1/1
+y[y == 0] = -1
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Perceptron model with different random starts
+clf1 = make_pipeline(StandardScaler(), Perceptron(max_iter=1000, tol=1e-3, random_state=42))
+clf2 = make_pipeline(StandardScaler(), Perceptron(max_iter=1000, tol=1e-3, random_state=24))
+
+# Fit the models
+clf1.fit(X_train, y_train)
+clf2.fit(X_train, y_train)
+
+# Least squares solution
+reg = LinearRegression().fit(X_train, y_train)
+
+# Plotting the dataset and the hyperplanes
+fig, ax = plt.subplots()
+ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap='viridis', marker='o', label="Training data")
+ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap='viridis', marker='x', label="Test data")
+
+x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+
+xx1, xx2 = np.meshgrid(np.linspace(x1_min, x1_max, 100), np.linspace(x2_min, x2_max, 100))
+X_grid = np.c_[xx1.ravel(), xx2.ravel()]
+
+# Plotting the perceptron hyperplanes
+Z1 = clf1.decision_function(X_grid).reshape(xx1.shape)
+ax.contour(xx1, xx2, Z1, levels=[0], colors='b', alpha=0.5)
+
+Z2 = clf2.decision_function(X_grid).reshape(xx1.shape)
+ax.contour(xx1, xx2, Z2, levels=[0], colors='b', alpha=0.5)
+
+# Plotting the least squares hyperplane
+Z_reg = reg.predict(X_grid).reshape(xx1.shape)
+ax.contour(xx1, xx2, Z_reg, levels=[0], colors='orange', alpha=0.5)
+
+ax.legend()
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.title('Hyperplanes (Percetron in blue , Least squares in yellow) separating two classes')
+plt.show()
+```
